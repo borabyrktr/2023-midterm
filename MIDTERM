@@ -1,0 +1,101 @@
+#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_tim.h"
+#include "main.h"
+
+/* Define constants for timer and LED pin */
+#define TIM_NUMBER              TIM2
+#define ARR_NUMBER              (65536 - 1)
+#define DURATION                302850
+#define LED_PIN_NUMBER          GPIO_PIN_13
+
+/* Private variables */
+TIM_HandleTypeDef htim;
+uint16_t prescaler_value = 2;
+
+/* Private function prototypes */
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_TIM_Init(void);
+
+int main(void)
+{
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_TIM_Init();
+
+  /* Start the timer */
+  HAL_TIM_Base_Start(&htim);
+
+  /* Infinite loop */
+  while (1)
+  {
+    /* Check if the timer has reached the specified duration */
+    if(TIM2->CNT >= DURATION)
+    {
+      /* Stop the timer */
+      HAL_TIM_Base_Stop(&htim);
+
+      /* Toggle the LED pin */
+      HAL_GPIO_TogglePin(GPIOC, LED_PIN_NUMBER);
+
+      /* Reset the timer count */
+      TIM2->CNT = 0;
+
+      /* Start the timer */
+      HAL_TIM_Base_Start(&htim);
+    }
+  }
+}
+
+/**
+  * System Clock Configuration
+  * System Clock source            = PLL (HSE)
+  * SYSCLK(Hz)                     = 168000000
+  * HCLK(Hz)                       = 168000000
+  * AHB Prescaler                  = 1
+  * APB1 Prescaler                 = 4
+  * APB2 Prescaler                 = 2
+  * HSE Frequency(Hz)              = 8000000
+  * PLL_M                          = 8
+  * PLL_N                          = 336
+  * PLL_P                          = 2
+  * PLL_Q                          = 7
+  * VDD(V)                         = 3.3
+  * Main regulator output voltage  = Scale1 mode
+  * Flash Latency(WS)              = 5
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 336;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 7;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType =
